@@ -4,6 +4,8 @@ public class PathViewerClient {
     public readonly CreatedHandler _created;
     public readonly DeletedHandler _deleted;
     public readonly SelectedHandler _selected;
+    public readonly AssetsRequestHandler _assetsRequested;
+    public readonly FullSceneRequestHandler _fullSceneRequested;
 
     public PathViewerClient(IEnumerable<IBlenderEventHandler> handlers) {
         _created = handlers
@@ -14,6 +16,12 @@ public class PathViewerClient {
             .Single(); 
         _selected = handlers
             .OfType<SelectedHandler>()
-            .Single(); 
+            .Single();
+        _assetsRequested = handlers
+            .OfType<AssetsRequestHandler>()
+            .Single();
+        _fullSceneRequested = handlers
+            .OfType<FullSceneRequestHandler>()
+            .Single();
     } 
 }    

@@ -576,7 +576,14 @@ def import_seesharp(filepath):
                         continue
                     if obj.get("material") in mat_lookup:
                         new_obj.data.materials.append(mat_lookup[obj["material"]])
-                    new_obj.matrix_world = global_matrix
+                    # new_obj.matrix_world = global_matrix
+                    # Apply the axis conversion to the mesh vertices instead
+                    new_obj.data.transform(global_matrix)
+
+                    # Keep the object's transform at its defaults
+                    new_obj.location = (0, 0, 0)
+                    new_obj.rotation_euler = (0, 0, 0)
+                    new_obj.scale = (1, 1, 1)
 
                     # APPLY OBJECT-LEVEL EMISSION
                     if "emission" in obj:
@@ -635,6 +642,12 @@ class SeeSharpImporter(bpy.types.Operator):
 
     def execute(self, context):
         import_seesharp(self.filepath)
+
+        # Store the imported scene name
+        context.window_manager.seesharp_scene_name = os.path.splitext(
+            os.path.basename(self.filepath)
+        )[0]
+
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -646,6 +659,11 @@ def menu_func_import(self, context):
 
 
 def register():
+    bpy.types.WindowManager.seesharp_scene_name = bpy.props.StringProperty(
+        name="SeeSharp Scene Name",
+        description="Currently imported SeeSharp scene",
+        default=""
+    )
     bpy.utils.register_class(SeeSharpImporter)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
@@ -653,7 +671,7 @@ def register():
 def unregister():
     bpy.utils.unregister_class(SeeSharpImporter)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
-
+    del bpy.types.WindowManager.seesharp_scene_name
 
 if __name__ == "__main__":
     register()

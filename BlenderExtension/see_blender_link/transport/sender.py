@@ -1,30 +1,30 @@
 import socket
 import json
-from ..config import HOST, PORT_OUT
+import threading
 
 _blazor_socket = None
+_socket_lock = threading.Lock()
 
-def _connect():
+def set_socket(sock):
+    """Called by the listener when a connection is established."""
     global _blazor_socket
-    try:
-        _blazor_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        _blazor_socket.connect((HOST, PORT_OUT))
-        print("[Blender->Blazor] Connected")
-    except Exception as e:
-        print("[Blender->Blazor] Connect failed:", e)
+    _blazor_socket = sock
+
+
+def clear_socket(sock):
+    """Called by the listener when the connection is closed."""
+    global _blazor_socket
+    if _blazor_socket is sock:
         _blazor_socket = None
 
-
 def send_to_blazor(data: dict):
-    global _blazor_socket
-
-    if not _blazor_socket:
-        _connect()
-        if not _blazor_socket:
-            return
+    if _blazor_socket is None:
+        print("[Blender->Blazor] Not connected")
+        return
 
     try:
         msg = json.dumps(data) + "\n"
-        _blazor_socket.sendall(msg.encode("utf8"))
-    except Exception:
-        _blazor_socket = None
+        with _socket_lock:
+            _blazor_socket.sendall(msg.encode("utf8"))
+    except Exception as e:
+        print("[Blender->Blazor] Send failed:", e)

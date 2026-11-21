@@ -8,11 +8,19 @@ public interface IBlenderEventHandler {
     void Handle(JsonElement root);
 }
 
+public interface IBlenderArchiveEventHandler
+{
+    string EventType { get; }
+    Task HandleAsync(JsonElement root, byte[] archive);
+}
+
 public class BlenderEventDispatcher {
     private readonly Dictionary<string, IBlenderEventHandler> _handlers;
-
-    public BlenderEventDispatcher(IEnumerable<IBlenderEventHandler> handlers) {
+    private readonly Dictionary<string, IBlenderArchiveEventHandler> _archiveHandlers;
+    public BlenderEventDispatcher(IEnumerable<IBlenderEventHandler> handlers,
+        IEnumerable<IBlenderArchiveEventHandler> archiveHandlers) {
         _handlers = handlers.ToDictionary(h => h.EventType);
+        _archiveHandlers = archiveHandlers.ToDictionary(h => h.EventType);
     }
 
     public void Register(IBlenderEventHandler handler) {
@@ -35,5 +43,20 @@ public class BlenderEventDispatcher {
             handler.Handle(root);
         else
             Logger.Warning($"⚠️ Unknown Blender event: {evt}");
+    }
+
+    public async Task DispatchArchiveAsync(JsonElement root, byte[] archive)
+    {
+        if (!root.TryGetProperty("event", out var evtProp))
+            return;
+
+        var evt = evtProp.GetString();
+        if (evt == null)
+            return;
+
+        if (_archiveHandlers.TryGetValue(evt, out var handler))
+            await handler.HandleAsync(root, archive);
+        else
+            Logger.Warning($"⚠️ Unknown Blender archive event: {evt}");
     }
 }    
